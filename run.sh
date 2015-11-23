@@ -6,13 +6,17 @@ components="elasticsearch fluentd qpid-router kibana"
 
 function build_images(){
 	for component in $components; do
-		local repo="docker-$component"
-		[ -d $repo ] || git clone https://github.com/BitScoutOrg/$repo
-		cd $repo
-		git pull --rebase
-		./build-image.sh
-		cd -
+		build_image "docker-$component"
 	done
+}
+
+function build_image(){
+	local repo="$1"
+	[ -d $repo ] || git clone https://github.com/BitScoutOrg/$repo
+	cd $repo
+	git pull --rebase
+	./build-image.sh
+	cd -
 }
 
 function cleanup(){
