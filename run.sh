@@ -4,6 +4,19 @@ set -o errexit -o pipefail
 
 components="elasticsearch fluentd qpid-router kibana"
 
+function turn_on(){
+	local rundir=bitscout-efk-app
+	mkdir $rundir
+	cp efk-atomicapp/answers.conf $rundir
+	cd $rundir
+	atomic run bitscout/efk-atomicapp
+	cd -
+}
+
+function turn_off(){
+	docker stop `docker ps -q`
+}
+
 function build_images(){
 	for component in $components; do
 		build_image "docker-$component"
@@ -21,6 +34,7 @@ function build_image(){
 }
 
 function cleanup(){
+	rm bitscout-efk-app
 	for component in $components; do
 		docker rmi bitscout/$component
 		docker rmi bitscout/$component-app
@@ -31,7 +45,7 @@ function cleanup(){
 
 set -x
 build_images # later on we should just pull from docker hub? (currently missing *-app on dockerhub)
-# TODO turn on
-# TODO test basic scenario
-# TODO turn off
+turn_on
+bash # TODO test basic scenario
+turn_off
 cleanup
