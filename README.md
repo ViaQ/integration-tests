@@ -12,5 +12,5 @@
 ## Test Run
 
 ```
- # ./run.sh
+ ./run.sh
 ```
