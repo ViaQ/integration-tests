@@ -20,6 +20,7 @@ function turn_off(){
 function build_images(){
 	for component in $components; do
 		build_image "docker-$component"
+		build_image "nulecule-$component"
 	done
 	build_image "efk-atomicapp"
 }
