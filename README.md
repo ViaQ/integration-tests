@@ -5,7 +5,7 @@
 ## Test Prerequisites
 
 ```
- dnf install docker
+ dnf install docker atomic
  service docker start
 ```
 
