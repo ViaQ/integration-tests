@@ -24,6 +24,7 @@ function build_image(){
 }
 
 function turn_on(){
+	[ -d $atomicrundir ] ; rm $atomicrundir
 	mkdir $atomicrundir
 	cp efk-atomicapp/answers.conf $atomicrundir
 	cd $atomicrundir
@@ -33,10 +34,10 @@ function turn_on(){
 
 function turn_off(){
 	docker stop `docker ps -q`
+	[ -d $atomicrundir ] ; rm $atomicrundir
 }
 
 function cleanup(){
-	rm $atomicrundir
 	for component in $components; do
 		docker rmi bitscout/$component
 		docker rmi bitscout/$component-app
