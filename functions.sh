@@ -37,6 +37,17 @@ function turn_off(){
 	[ -d $atomicrundir ] ; rm $atomicrundir
 }
 
+function _list_bitscout_containers(){
+	docker ps -a | awk '{print $1,$2}' | grep ' bitscout/' \
+		| awk '{print $1}'
+}
+
+function _remove_docker_containers(){
+	for container in `_list_bitscout_containers`; do
+		docker rm $container
+	done
+}
+
 function _remove_docker_image(){
 	if docker images | grep $1; then
 		docker rmi "$1"
@@ -44,6 +55,7 @@ function _remove_docker_image(){
 }
 
 function cleanup(){
+	_remove_docker_containers
 	for component in $components; do
 		_remove_docker_image bitscout/$component
 		_remove_docker_image bitscout/$component-app
