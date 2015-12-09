@@ -4,6 +4,8 @@ set -o errexit -o pipefail
 
 components="elasticsearch fluentd qpid-router kibana"
 
+atomicrundir=bitscout-efk-app
+
 function build_images(){
 	for component in $components; do
 		build_image "docker-$component"
@@ -22,10 +24,9 @@ function build_image(){
 }
 
 function turn_on(){
-	local rundir=bitscout-efk-app
-	mkdir $rundir
-	cp efk-atomicapp/answers.conf $rundir
-	cd $rundir
+	mkdir $atomicrundir
+	cp efk-atomicapp/answers.conf $atomicrundir
+	cd $atomicrundir
 	atomic run bitscout/efk-atomicapp
 	cd -
 }
@@ -35,7 +36,7 @@ function turn_off(){
 }
 
 function cleanup(){
-	rm bitscout-efk-app
+	rm $atomicrundir
 	for component in $components; do
 		docker rmi bitscout/$component
 		docker rmi bitscout/$component-app
