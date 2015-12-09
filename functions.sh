@@ -37,10 +37,15 @@ function turn_off(){
 	[ -d $atomicrundir ] ; rm $atomicrundir
 }
 
+function _remove_docker_image(){
+	docker rmi "$1"
+
+}
+
 function cleanup(){
 	for component in $components; do
-		docker rmi bitscout/$component
-		docker rmi bitscout/$component-app
+		_remove_docker_image bitscout/$component
+		_remove_docker_image bitscout/$component-app
 	done
 	docker rmi bitscout/efk-atomicapp
 	[ "x`docker images | grep bitscout`" == "x" ]
