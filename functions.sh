@@ -38,8 +38,9 @@ function turn_off(){
 }
 
 function _list_bitscout_containers(){
-	docker ps -a | awk '{print $1,$2}' | grep ' bitscout/' \
-		| awk '{print $1}'
+	docker ps -a --format="{{.ID}},{{.Image}},{{.Names}}" \
+		| grep ',bitscout[/-]' \
+		| awk -F ","  '{print $1}'
 }
 
 function _remove_docker_containers(){
