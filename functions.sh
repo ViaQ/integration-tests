@@ -38,8 +38,9 @@ function turn_off(){
 }
 
 function _remove_docker_image(){
-	docker rmi "$1"
-
+	if docker images | grep $1; then
+		docker rmi "$1"
+	fi
 }
 
 function cleanup(){
