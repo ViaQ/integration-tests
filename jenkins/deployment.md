@@ -131,29 +131,19 @@ Note:
 + Install java
 	+ ```# dnf install "java-*-openjdk``` or ```# yum install java```
 	+ Jenkins can install java on slave itself, but we want to have Java as package maintaned by yum/dnf.
-	+ *Fedora packages*
-		+ SCAP Workbench dependencies
-			+ ```# dnf install rubygem-asciidoctor openscap-devel zip```
-			+ (master branch)
-				+ ```# dnf install git gcc-c++ qt5-qtbase-devel qt5-qtxmlpatterns-devel # workbench-master```
-		+ ```# dnf install ShellCheck```
-
 
 	+ *Common packages*
-		+ ``` # yum builddep openscap scap-workbench scap-security-guide scap-security-guide-doc```
-		+ ``` # yum install rpm-devel libcurl-devel libxml2-devel libxslt-devel pcre-devel python-devel``` -- without builddep
-		+ ``` # yum groupinstall "Development Tools"```
-		+ ``` # yum install git libtool perl-XML-XPath valgrind sendmail asciidoc```
-		+ ``` # yum install bzip2-devel```
-		+ ``` # yum install libselinux-devel```
-		+ ``` # yum install openscap-scanner``` - required by SSG
-	+ asciidoctor on RHEL6/RHEL7
-		+ ``` # yum install rubygems && gem install asciidoc ```
-		+ ``` # yum install rubygems && gem install asciidoctor ```
+		+ ``` # yum install atomic```
 
 
 	+ Enable/Start sendmail service ( mitre test requires it)
 		+ ``` # systemctl enable sendmail ; # systemctl start sendmail ```
+		+ ``` # systemctl enable docker ; # systemctl start docker ```
++ Add the following lines to sudoers (`visudo`)
+	+ cloud-user ALL=(ALL) NOPASSWD: ALL
+	+ jenkins ALL=(ALL) NOPASSWD:/usr/bin/dnf update -y
+	+ jenkins ALL=(ALL) NOPASSWD:/usr/bin/atomic
+
 
 ## 5. Add Https support
 + **Add Nginx**
