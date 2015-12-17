@@ -2,7 +2,7 @@
 
 set -o errexit -o pipefail
 
-components="elasticsearch fluentd qpid-router kibana"
+components="elasticsearch fluentd rsyslog-collector qpid-router kibana"
 
 atomicrundir=bitscout-efk-app
 
