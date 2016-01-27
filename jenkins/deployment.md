@@ -1,4 +1,4 @@
-# BitScout-jenkins configuration
+# ViaQ-jenkins configuration
 This document should describe configuration of Jenkins.
 
 This document describes current settings. You maybe want to use different configuration - different cloud, different systems etc. There should be described basic steps.
@@ -38,7 +38,7 @@ Note:
 			+ Launch
 	4. Now you have machine somewhere in the cloud and you have to get acces to the machine:
 		+ Get *public IP* (at least for master)
-			+ OS: Acess & Security / Floating IPs > Allocate IP to Project
+			+ OS: Access & Security / Floating IPs > Allocate IP to Project
 			+ OS: Select IP -> Associate -> select instance
 		+ *Manage access to machines* (= open ports)
 			+ OS: Acess & Security / Securit Groups
@@ -94,7 +94,7 @@ Note:
 			+ select Github Authentication Plugin
 			+ add admin rights to your GitHub acc before you logout!
 	+ Create *GitHub application* https://github.com/settings/applications/new
-		+	(is already created by user openscap-jenkins user) (should we create new user for bitscout?)
+		+	(is already created by user openscap-jenkins user) (should we create new user for viaq?)
 		+	fill *Client ID* and *Client Secret* from the app
  + *WebHooks*
 	+ When you do some action with GitHub repo, it can call you via "webhooks"
