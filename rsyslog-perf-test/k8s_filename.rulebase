@@ -1,0 +1,6 @@
+#rule=:-%container_id:string-to:.log%.log
+#rule=:%container_name_part:char-sep:-%%tail:rest%
+#rule=:/%paths:tokenized:/:char-sep:/%
+#rule=:/path/%kubernetes_pod_name:char-to:_%_%kubernetes_namespace_name:char-to:_%_%docker:tokenized:-:recursive%
+#rule=:/path/%kubernetes_pod_name:char-to:_%_%kubernetes_namespace_name:char-to:_%_%kubernetes_container_name_id:string-to:.log%.log
+rule=:/datadir/docker/%kubernetes_pod_name:char-to:_%_%kubernetes_namespace_name:char-to:_%_%container:tokenized:-:char-sep:-%
