@@ -1,0 +1,184 @@
+#$DebugLevel 2
+module(load="imfile")
+module(load="mmjsonparse")
+module(load="mmnormalize")
+# ElasticSearch output module
+module(load="omelasticsearch")
+module(load="omstdout")
+
+$DefaultParser "parser.pmrfc3164"
+
+global(
+    # Where to place auxiliary files
+    workDirectory="/datadir"
+    # perf-dept: we want fully qualified domain names for common logging
+    preserveFQDN="on")
+
+# Use default timestamp format
+#$ActionFileDefaultTemplate RSYSLOG_FileFormat
+
+template(name="operations_index_pattern" type="list") {
+    constant(value=".operations.")
+    property(name="$!time" dateFormat="rfc3339" position.from="1" position.to="4")
+    constant(value=".")
+    property(name="$!time" dateFormat="rfc3339" position.from="6" position.to="7")
+    constant(value=".")
+    property(name="$!time" dateFormat="rfc3339" position.from="9" position.to="10")
+    }
+
+template(name="operations_template" type="list") {
+    constant(value="{")
+    constant(value="\"time\":\"")               property(name="$!time" dateFormat="rfc3339")
+    constant(value="\",\"ident\":\"")           property(name="$!ident")
+    constant(value="\",\"pid\":\"")             property(name="$!pid")
+    constant(value="\",\"message\":\"")         property(name="$!message")
+    constant(value="\",\"hostname\":\"")        property(name="$!host")
+    constant(value="\",\"version\":\"1.1.4\"")
+    constant(value="}")
+}
+
+template(name="kubernetes_template" type="list") {
+    constant(value="{")
+    constant(value="\"time\":\"")               property(name="$!time" dateFormat="rfc3339")
+    constant(value="\",\"kubernetes_namespace_name\":\"")           property(name="$!kubernetes_namespace_name")
+    constant(value="\",\"kubernetes_namespace_id\":\"")           property(name="$!kubernetes_namespace_id")
+    constant(value="\",\"docker_container_id\":\"")           property(name="$!docker_container_id")
+    constant(value="\",\"kubernetes_pod_name\":\"")           property(name="$!kubernetes_pod_name")
+    constant(value="\",\"kubernetes_host\":\"localhost") #           property(name="$!kubernetes_host")
+    constant(value="\",\"hostname\":\"")           property(name="$!hostname")
+    constant(value="\",\"message\":\"")           property(name="$!log")
+    constant(value="\",\"version\":\"1.1.4\"")
+    constant(value="}")
+}
+
+template(name="debug" type="list") {
+    constant(value="debugtemplate {\n")
+    constant(value="\tmsg=[") property(name="msg") constant(value="]\n")
+    constant(value="\trawmsg=[") property(name="rawmsg") constant(value="]\n")
+    constant(value="\trawmsg-after-pri=[") property(name="rawmsg-after-pri") constant(value="]\n")
+    constant(value="\thostname=[") property(name="hostname") constant(value="]\n")
+    constant(value="\tsource=[") property(name="source") constant(value="]\n")
+    constant(value="\tfromhost=[") property(name="fromhost") constant(value="]\n")
+    constant(value="\tfromhost-ip=[") property(name="fromhost-ip") constant(value="]\n")
+    constant(value="\tsyslogtag=[") property(name="syslogtag") constant(value="]\n")
+    constant(value="\tprogramname=[") property(name="programname") constant(value="]\n")
+    constant(value="\tpri=[") property(name="pri") constant(value="]\n")
+    constant(value="\tpri-text=[") property(name="pri-text") constant(value="]\n")
+    constant(value="\tiut=[") property(name="iut") constant(value="]\n")
+    constant(value="\tsyslogfacility=[") property(name="syslogfacility") constant(value="]\n")
+    constant(value="\tsyslogfacility-text=[") property(name="syslogfacility-text") constant(value="]\n")
+    constant(value="\tsyslogseverity=[") property(name="syslogseverity") constant(value="]\n")
+    constant(value="\tsyslogseverity-text=[") property(name="syslogseverity-text") constant(value="]\n")
+    constant(value="\tsyslogpriority=[") property(name="syslogpriority") constant(value="]\n")
+    constant(value="\tsyslogpriority-text=[") property(name="syslogpriority-text") constant(value="]\n")
+    constant(value="\ttimegenerated=[") property(name="timegenerated") constant(value="]\n")
+    constant(value="\ttimereported=[") property(name="timereported") constant(value="]\n")
+    constant(value="\ttimestamp=[") property(name="timestamp") constant(value="]\n")
+    constant(value="\tprotocol-version=[") property(name="protocol-version") constant(value="]\n")
+    constant(value="\tstructured-data=[") property(name="structured-data") constant(value="]\n")
+    constant(value="\tapp-name=[") property(name="app-name") constant(value="]\n")
+    constant(value="\tprocid=[") property(name="procid") constant(value="]\n")
+    constant(value="\tmsgid=[") property(name="msgid") constant(value="]\n")
+    constant(value="\tinputname=[") property(name="inputname") constant(value="]\n")
+    constant(value="}\n")
+}
+
+template(name="kubernetes_index_pattern" type="list") {
+    property(name="$!kubernetes_namespace_name")
+    constant(value=".")
+    property(name="$!kubernetes_namespace_id")
+    constant(value=".")
+    property(name="$!time" dateFormat="rfc3339" position.from="1" position.to="4")
+    constant(value=".")
+    property(name="$!time" dateFormat="rfc3339" position.from="6" position.to="7")
+    constant(value=".")
+    property(name="$!time" dateFormat="rfc3339" position.from="9" position.to="10")
+    }
+
+parser(name="custom.rfc3164" type="pmrfc3164"
+       permit.squareBracketsInHostname="on"
+       detect.YearAfterTimestamp="on")
+
+ruleset(name="system_logs") {
+#*.* :omstdout:;junk1
+*.* :omstdout:
+*.* :omstdout:;operations_index_pattern
+*.* :omstdout:;operations_template
+#    action(type="mmnormalize" ruleBase="/etc/rsyslog.d/var-log-messages.rulebase")
+
+*.* :omstdout:;operations_index_pattern
+*.* :omstdout:;operations_template
+    action(
+        type="omelasticsearch"
+        server="viaq-elasticsearch"
+        serverport="9200"
+        template="operations_template"
+        searchIndex="operations_index_pattern"
+        dynSearchIndex="on"
+        searchType="fluentd"
+        bulkmode="on"
+        queue.type="linkedlist"
+        queue.size="5000"
+        queue.dequeuebatchsize="600"
+        action.resumeretrycount="-1")
+}
+
+template(name="junk1" type="list") { constant(value="<133>") property(name="msg") }
+template(name="junk2" type="list") { constant(value="<133>") property(name="rawmsg") }
+
+#ruleset(name="system_logs_rfc3164") {
+ruleset(name="system_logs_rfc3164" parser="custom.rfc3164") {
+#     reset $msg = exec_template("junk1");
+#     reset $rawmsg = exec_template("junk2");
+#*.* :omstdout:;RSYSLOG_DebugFormat
+#*.* :omstdout:;debug
+# $/msg is not the same as system property msg
+#     reset $/msg = exec_template("junk1");
+# $msg is not found 
+#     reset $msg = exec_template("junk1");
+# this just barfs
+#     reset msg = exec_template("junk1");
+#*.* :omstdout:;RSYSLOG_DebugFormat
+#*.* :omstdout:;debug
+    call system_logs
+}
+
+ruleset(name="kubernetes_logs") {
+    # parse as JSON
+    action(type="mmjsonparse" cookie="")
+    action(type="mmnormalize" variable="$!metadata!filename" ruleBase="/etc/rsyslog.d/k8s_filename.rulebase")
+    set $!kubernetes_container_name = "";
+    set $.delim = "";
+    foreach ($.ii in $!container) do {
+        # last field container_id ends with ".log"
+        set $.isend = field($.ii, 46, 2);
+        if (strlen($.isend) > 0) and ($.isend == 'log') then {
+            set $!docker_container_id = field($.ii, 46, 1);
+        } else {
+            # concat the other values together into the container name
+            reset $!kubernetes_container_name = $!kubernetes_container_name & $.delim & $.ii;
+            reset $.delim = "-";
+        }
+        unset $.isend;
+    }
+    unset $!container;
+    unset $.delim;
+*.* :omstdout:;kubernetes_index_pattern
+*.* :omstdout:;kubernetes_template
+    # action(
+    #     type="omelasticsearch"
+    #     server="127.0.0.1"
+    #     serverport="9200"
+    #     template="kubernetes_template"
+    #     searchIndex="kubernetes_index_pattern"
+    #     dynSearchIndex="on"
+    #     searchType="fluentd"
+    #     bulkmode="on"
+    #     queue.type="linkedlist"
+    #     queue.size="5000"
+    #     queue.dequeuebatchsize="600"
+    #     action.resumeretrycount="-1")
+}
+
+#input(type="imfile" file="/datadir/docker/*.log" tag="kubernetes" addmetadata="on" ruleset="kubernetes_logs")
+input(type="imfile" file="/datadir/messages*" tag="system" addmetadata="on" ruleset="system_logs_rfc3164" parser="custom.rfc3164")

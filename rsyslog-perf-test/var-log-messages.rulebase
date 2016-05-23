@@ -1,0 +1,3 @@
+prefix=%time:date-rfc3164% %host:word%
+rule=: %ident:char-to:[%[%pid:number%]: %message:rest%
+rule=: %ident:char-to:\x3a%: %message:rest%
