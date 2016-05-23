@@ -7,7 +7,6 @@ pushd $testdir
 
 USE_FLUENTD=${USE_FLUENTD:-true}
 USE_GDB=${USE_GDB:-false}
-USE_JOURNAL=${USE_JOURNAL:-true}
 ES_VER=${ES_VER:-2.4.4}
 DEBUG_FLUENTD=false
 # by default, if we're using journal, we will use it for both system messages
@@ -19,6 +18,8 @@ USE_JOURNAL_FOR_CONTAINERS=${USE_JOURNAL_FOR_CONTAINERS:-$USE_JOURNAL}
 # in a centos7 container to generate the messages.journal file in a format that
 # can be read by fluentd
 USE_CONTAINER_FOR_JOURNAL_FORMAT=${USE_CONTAINER_FOR_JOURNAL_FORMAT:-true}
+USE_JOURNAL=${USE_JOURNAL:-false}
+SKIP_MESSAGES_TEST=${SKIP_MESSAGES_TEST:-false}
 
 if [ "$USE_JOURNAL" = "true" ] ; then
     if [ "${USE_CONTAINER_FOR_JOURNAL_FORMAT:-}" != true ] ; then
@@ -72,7 +73,7 @@ cleanup() {
         if [ $out -ne 0 ] ; then
             ls -R -alrtF $workdir
         fi
-#        rm -rf "$workdir"
+        rm -rf "$workdir"
     fi
 }
 
@@ -370,6 +371,7 @@ else
 fi
 
 count_ge_nmessages() {
+    curl localhost:24220/api/plugins.json
     curcount=`curl_es $myhost $myproject _count $myfield "$mymessage" | get_count_from_json`
     echo count $curcount time $(date +%s)
     test "${curcount:-0}" -ge $NMESSAGES
@@ -397,6 +399,12 @@ done
 # now total number of records >= $startcount + $NMESSAGES
 # mark time
 MARKTIME=$(date +%s)
+
+if [ "$SKIP_MESSAGES_TEST" = "true" ] ; then
+    echo Skipping tests, code will terminate in 30 sec.
+    sleep 30
+    exit
+fi
 
 echo duration `expr $MARKTIME - $STARTTIME`
 
