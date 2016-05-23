@@ -8,6 +8,7 @@ pushd $testdir
 USE_FLUENTD=${USE_FLUENTD:-true}
 USE_GDB=${USE_GDB:-false}
 USE_JOURNAL=${USE_JOURNAL:-false}
+SKIP_MESSAGES_TEST=${SKIP_MESSAGES_TEST:-false}
 
 if [ "$USE_JOURNAL" = "true" ] ; then
     rpm -q systemd-journal-gateway || sudo dnf -y install systemd-journal-gateway || \
@@ -54,11 +55,11 @@ fi
 
 cleanup() {
     out=$?
-    docker logs $collectorid > collector.log 2>&1
+#    docker logs $collectorid > collector.log 2>&1
     if [ -n "$workdir" -a -d "$workdir" ] ; then
-        if [ $out -ne 0 ] ; then
+#        if [ $out -ne 0 ] ; then
             ls -R -alrtF $workdir
-        fi
+#        fi
         rm -rf "$workdir"
     fi
 }
@@ -286,7 +287,7 @@ if [ "$USE_FLUENTD" = "true" ] ; then
     cp $fluentd_syslog_input $confdir/syslog-input.conf
     # run fluentd with the config dir mounted as /etc/fluentd
     STARTTIME=$(date +%s)
-    collectorid=`docker run -p 5141:5141/udp -v $datadir:/datadir -v $confdir:/etc/fluent --link viaq-elasticsearch -e ES_HOST=viaq-elasticsearch -e OPS_HOST=viaq-elasticsearch -e ES_PORT=9200 -e OPS_PORT=9200 -e DATA_DIR=/datadir -e SYSLOG_LISTEN_PORT=5141 -d viaq/fluentd:latest`
+    collectorid=`docker run -e RUBY_SCL_VER=rh-ruby22 -p 5141:5141/udp -p 24220:24220 -v $datadir:/datadir -v $confdir:/etc/fluent --link viaq-elasticsearch -e ES_HOST=viaq-elasticsearch -e OPS_HOST=viaq-elasticsearch -e ES_PORT=9200 -e OPS_PORT=9200 -e DATA_DIR=/datadir -e SYSLOG_LISTEN_PORT=5141 -d viaq/fluentd:latest`
 else
     pushd ../docker-rsyslog-collector
     ./build-image.sh
@@ -305,6 +306,7 @@ else
 fi
 
 count_ge_nmessages() {
+    curl localhost:24220/api/plugins.json
     curcount=`curl_es $myhost $myproject _count $myfield "$mymessage" | get_count_from_json`
     echo count $curcount time $(date +%s)
     test $curcount -ge $NMESSAGES
@@ -312,7 +314,7 @@ count_ge_nmessages() {
 
 echo waiting for $NMESSAGES messages in .operations and $NPROJECTS projects in elasticsearch
 
-myhost=localhost myproject=.operations myfield=ident mymessage=$prefix wait_until_cmd count_ge_nmessages 20 1 || {
+myhost=localhost myproject=.operations myfield=ident mymessage=$prefix wait_until_cmd count_ge_nmessages 520 5 || {
     echo error: $NMESSAGES messages not found in .operations
     curl_es localhost .operations _search ident $prefix | python -mjson.tool
     exit 1
@@ -321,7 +323,7 @@ myhost=localhost myproject=.operations myfield=ident mymessage=$prefix wait_unti
 ii=1
 while [ $ii -le $NPROJECTS ] ; do
     myproject=`printf "%s${NPFMT}" $projprefix $ii`
-    myhost=localhost myproject=$myproject myfield=message mymessage=$prefix wait_until_cmd count_ge_nmessages 60 1 || {
+    myhost=localhost myproject=$myproject myfield=message mymessage=$prefix wait_until_cmd count_ge_nmessages 520 5 || {
         echo error: $NMESSAGES messages not found in $myproject
         curl_es localhost $myproject _search message $prefix | python -mjson.tool
         exit 1
@@ -331,6 +333,12 @@ done
 # now total number of records >= $startcount + $NMESSAGES
 # mark time
 MARKTIME=$(date +%s)
+
+if [ "$SKIP_MESSAGES_TEST" = "true" ] ; then
+    echo Skipping tests, code will terminate in 30 sec.
+    sleep 30
+    exit
+fi
 
 echo duration `expr $MARKTIME - $STARTTIME`
 
