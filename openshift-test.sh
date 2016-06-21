@@ -318,14 +318,15 @@ myhost=localhost myproject=.operations myfield=ident mymessage=$prefix wait_unti
     exit 1
 }
 
-ii=1
-while [ $ii -le $NPROJECTS ] ; do
-    myproject=`printf "%s${NPFMT}" $projprefix $ii`
+iii=1
+while [ $iii -le $NPROJECTS ] ; do
+    myproject=`printf "%s${NPFMT}" $projprefix $iii`
     myhost=localhost myproject=$myproject myfield=message mymessage=$prefix wait_until_cmd count_ge_nmessages 60 1 || {
         echo error: $NMESSAGES messages not found in $myproject
         curl_es localhost $myproject _search message $prefix | python -mjson.tool
         exit 1
     }
+    iii=`expr $iii + 1`
 done
 
 # now total number of records >= $startcount + $NMESSAGES
