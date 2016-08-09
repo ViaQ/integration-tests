@@ -7,7 +7,10 @@ pushd $testdir
 
 USE_FLUENTD=${USE_FLUENTD:-true}
 USE_GDB=${USE_GDB:-false}
-USE_JOURNAL=${USE_JOURNAL:-false}
+USE_JOURNAL=${USE_JOURNAL:-true}
+# by default, if we're using journal, we will use it for both system messages
+# and container messages
+USE_JOURNAL_FOR_CONTAINERS=${USE_JOURNAL_FOR_CONTAINERS:-$USE_JOURNAL}
 
 if [ "$USE_JOURNAL" = "true" ] ; then
     rpm -q systemd-journal-gateway || sudo dnf -y install systemd-journal-gateway || \
@@ -47,7 +50,7 @@ if [ "$USE_JOURNAL" = "true" ] ; then
     systemlog=$datadir/journal/messages.journal
     fluentd_syslog_input=openshift-fluentd-syslog-journal.conf
     rsyslog_syslog_input=rsyslog-input-journal.conf
-    rsyslog_bindmount="-v $datadir/journal:/run/log/journal"
+    rsyslog_bindmount="-v $datadir/journal:/var/log/journal"
 else
     systemlog=$datadir/messages
 fi
@@ -185,6 +188,9 @@ format_journal_message() {
     # $3 - $EXTRAFMT
     # $4 - $prefix
     # $5 - $ii
+    # $6 - CONTAINER_NAME
+    # $7 - CONTAINER_ID
+    # $8 - CONTAINER_ID_FULL
     fac=1
     sev=2
     msg=`printf "%s-$2 $3" $4 $5 1`
@@ -203,8 +209,17 @@ SYSLOG_FACILITY=$fac
 _COMM=$4
 _PID=$$
 MESSAGE=$msg
-
+_TRANSPORT=stderr
+PRIORITY=3
 EOF
+        if [ -n "${6:-}" ] ; then
+            tee -a /tmp/junk <<EOF
+CONTAINER_NAME=$6
+CONTAINER_ID=$7
+CONTAINER_ID_FULL=$8
+EOF
+        fi
+        echo "" | tee -a /tmp/junk
     else
         echo "$msg"
     fi
@@ -221,6 +236,16 @@ contprefix="this-is-container-"
 format_json_filename() {
     # $1 - $ii
     printf "%s${NPFMT}_%s${NPFMT}_%s${NPFMT}-%s.log\n" "$podprefix" $1 "$projprefix" $1 "$contprefix" $1 "`echo $1 | sha256sum | awk '{print $1}'`"
+}
+
+# CONTAINER_NAME=k8s_bob.94e110c7_bob-iq0d4_default_2d67916a-1eac-11e6-94ba-001c42e13e5d_8b4b7e3d
+# From this, we can extract:
+#    container name in pod: bob
+#    pod name: bob-iq0d4
+#    namespace: default
+#    pod uid: 2d67916a-1eac-11e6-94ba-001c42e13e5d
+get_journal_container_name() {
+    printf "k8s_%s${NPFMT}.deadbeef_%s${NPFMT}_%s${NPFMT}_%s_abcdef01\n" "$contprefix" $1 "$podprefix" $1 "$projprefix" $1 `uuidgen`
 }
 
 pushd ../docker-elasticsearch
@@ -269,9 +294,17 @@ while [ $ii -le $NMESSAGES ] ; do
     $formatter short "$NFMT" "$EXTRAFMT" "$prefix" "$ii" >> $orig
     jj=1
     while [ $jj -le $NPROJECTS ] ; do
-        fn=`format_json_filename $jj`
-        format_json_message full "$NFMT" "$EXTRAFMT" "$prefix" "$ii" >> $datadir/docker/$fn
-        format_json_message short "$NFMT" "$EXTRAFMT" "$prefix" "$ii" >> $orig
+        if [ $USE_JOURNAL_FOR_CONTAINERS = false ] ; then
+            fn=`format_json_filename $jj`
+            format_json_message full "$NFMT" "$EXTRAFMT" "$prefix" "$ii" >> $datadir/docker/$fn
+            format_json_message short "$NFMT" "$EXTRAFMT" "$prefix" "$ii" >> $orig
+        else
+            CONTAINER_NAME=`get_journal_container_name $jj`
+            CONTAINER_ID_FULL=`echo $jj | sha256sum | awk '{print $1}'`
+            CONTAINER_ID=`echo $jj | sha256sum | awk '{print substr($1, 1, 12)}'`
+            $formatter full "$NFMT" "$EXTRAFMT" "$prefix" "$ii" $CONTAINER_NAME $CONTAINER_ID_FULL $CONTAINER_ID | sysfilter
+            $formatter short "$NFMT" "$EXTRAFMT" "$prefix" "$ii" $CONTAINER_NAME $CONTAINER_ID_FULL $CONTAINER_ID >> $orig
+        fi
         jj=`expr $jj + 1`
     done
     ii=`expr $ii + 1`
@@ -282,11 +315,12 @@ if [ "$USE_FLUENTD" = "true" ] ; then
     ./build-image.sh
     popd
     # copy fluentd config to config dir
-    cp openshift-fluentd.conf $confdir/fluent.conf
-    cp $fluentd_syslog_input $confdir/syslog-input.conf
+    #    cp openshift-fluentd.conf $confdir/fluent.conf
+    cp -r openshift-fluentd/* $confdir
+#    cp $fluentd_syslog_input $confdir/syslog-input.conf
     # run fluentd with the config dir mounted as /etc/fluentd
     STARTTIME=$(date +%s)
-    collectorid=`docker run -p 5141:5141/udp -v $datadir:/datadir -v $confdir:/etc/fluent --link viaq-elasticsearch -e ES_HOST=viaq-elasticsearch -e OPS_HOST=viaq-elasticsearch -e ES_PORT=9200 -e OPS_PORT=9200 -e DATA_DIR=/datadir -e SYSLOG_LISTEN_PORT=5141 -d viaq/fluentd:latest`
+    collectorid=`docker run -p 5141:5141/udp -v $datadir:/var/log -v $confdir:/etc/fluent --link viaq-elasticsearch -e ES_HOST=viaq-elasticsearch -e OPS_HOST=viaq-elasticsearch -e ES_PORT=9200 -e OPS_PORT=9200 -e JOURNAL_SOURCE=/var/log/journal -e USE_JOURNAL=$USE_JOURNAL -e JOURNAL_READ_FROM_HEAD=true -e SYSLOG_LISTEN_PORT=5141 -d viaq/fluentd:latest`
 else
     pushd ../docker-rsyslog-collector
     ./build-image.sh
