@@ -1,7 +1,11 @@
 # integration-tests
 [![Travis CI](https://secure.travis-ci.org/ViaQ/integration-tests.png)](http://travis-ci.org/#!/ViaQ/integration-tests)
 
+Travis CI runs this test:
+
     $ ./openshift-test.sh
+
+The rest of this is legacy information.
 
 *This is work in progress.*
 
