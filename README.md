@@ -1,4 +1,7 @@
 # integration-tests
+[![Travis CI](https://secure.travis-ci.org/ViaQ/integration-tests.png)](http://travis-ci.org/#!/ViaQ/integration-tests)
+
+    $ ./openshift-test.sh
 
 *This is work in progress.*
 

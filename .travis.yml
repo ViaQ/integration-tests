@@ -1,0 +1,15 @@
+sudo: required
+
+language: ruby
+
+services:
+  - docker
+
+before_script:
+  - cd ..; git clone https://github.com/viaq/docker-elasticsearch ; git clone https://github.com/viaq/docker-fluentd
+
+script:
+  - ./openshift-test.sh
+
+notifications:
+  irc: "chat.freenode.net#viaq"
