@@ -12,8 +12,7 @@ before_script:
   - popd > /dev/null
 
 script:
-  - pwd
-  - ./openshift-test.sh
+  - bash ./openshift-test.sh
 
 notifications:
   irc: "chat.freenode.net#viaq"
