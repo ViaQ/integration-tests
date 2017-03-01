@@ -6,10 +6,14 @@ services:
   - docker
 
 before_script:
-  - cd ..; git clone https://github.com/viaq/docker-elasticsearch ; git clone https://github.com/viaq/docker-fluentd
+  - pushd .. > /dev/null
+  - git clone https://github.com/viaq/docker-elasticsearch
+  - git clone https://github.com/viaq/docker-fluentd
+  - popd > /dev/null
 
 script:
-  - pwd; ./openshift-test.sh
+  - pwd
+  - ./openshift-test.sh
 
 notifications:
   irc: "chat.freenode.net#viaq"
