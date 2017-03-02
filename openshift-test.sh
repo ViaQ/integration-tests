@@ -48,7 +48,7 @@ datadir=$workdir/data
 mkdir -p $confdir
 mkdir -p $datadir/docker
 sudo chown -R $USER $workdir
-sudo chcon -Rt svirt_sandbox_file_t $workdir
+sudo chcon -R unconfined_u:object_r:svirt_sandbox_file_t:s0 $workdir
 
 orig=$workdir/orig
 result=$workdir/result
