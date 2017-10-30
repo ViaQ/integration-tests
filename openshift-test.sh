@@ -75,6 +75,7 @@ cleanup() {
         fi
         rm -rf "$workdir"
     fi
+    exit $out
 }
 
 trap "exit" INT TERM
@@ -277,8 +278,8 @@ ES_VER=$ES_VER DB_IN_CONTAINER=1 sh -x $testdir/../docker-elasticsearch/run-cont
 
 # number of messages per project
 NMESSAGES=${NMESSAGES:-10}
-# max number of digits in $NMESSAGES
-NSIZE=${NSIZE:-2}
+# number size e.g. log base 10 of $NMESSAGES
+NSIZE=${NSIZE:-$( echo $NMESSAGES | wc -c )}
 # printf format for message number
 NFMT=${NFMT:-"%0${NSIZE}d"}
 # size of each message - number of bytes to write to each line of the logger file, not
@@ -352,7 +353,7 @@ if [ "$USE_FLUENTD" = "true" ] ; then
     cp $fluentd_syslog_input $confdir/configs.d/dynamic/input-syslog-default-syslog.conf
     # run fluentd with the config dir mounted as /etc/fluent
     STARTTIME=$(date +%s)
-    collectorid=`docker run -p 5141:5141/udp -v $datadir:/var/log -v $confdir:/etc/fluent --link viaq-elasticsearch -e ES_HOST=viaq-elasticsearch -e OPS_HOST=viaq-elasticsearch -e ES_PORT=9200 -e OPS_PORT=9200 -e JOURNAL_SOURCE=/var/log/journal -e USE_JOURNAL=$USE_JOURNAL -e JOURNAL_READ_FROM_HEAD=true -e SYSLOG_LISTEN_PORT=5141 -e DEBUG_FLUENTD=${DEBUG_FLUENTD} -e ES_SCHEME=http -e OPS_SCHEME=http -d viaq/fluentd:latest`
+    collectorid=`docker run -p 24220:24220 -p 5141:5141/udp -v $datadir:/var/log -v $confdir:/etc/fluent --link viaq-elasticsearch -e ES_HOST=viaq-elasticsearch -e OPS_HOST=viaq-elasticsearch -e ES_PORT=9200 -e OPS_PORT=9200 -e JOURNAL_SOURCE=/var/log/journal -e USE_JOURNAL=$USE_JOURNAL -e JOURNAL_READ_FROM_HEAD=true -e SYSLOG_LISTEN_PORT=5141 -e DEBUG_FLUENTD=${DEBUG_FLUENTD} -e ES_SCHEME=http -e OPS_SCHEME=http -d viaq/fluentd:latest`
 else
     pushd ../docker-rsyslog-collector
     ./build-image.sh
@@ -371,7 +372,6 @@ else
 fi
 
 count_ge_nmessages() {
-    curl localhost:24220/api/plugins.json
     curcount=`curl_es $myhost $myproject _count $myfield "$mymessage" | get_count_from_json`
     echo count $curcount time $(date +%s)
     test "${curcount:-0}" -ge $NMESSAGES

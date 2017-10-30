@@ -9,11 +9,14 @@ if [ "$EUID" -ne 0 ] ; then
     exit
 fi
 
+set -euxo pipefail
+
+. /opt/pbench-agent/profile
+
 export USE_FLUENTD=${USE_FLUENTD:-true}
 export NMESSAGES=${NMESSAGES:-5000}
 export NPROJECTS=${NPROJECTS:-1}
-export NSIZE=${NSIZE:-5}
-export SKIP_MESSAGES_TEST=${SKIP_MESSAGES_TEST:-true}
+#export SKIP_MESSAGES_TEST=${SKIP_MESSAGES_TEST:-true}
 
 COLLECTOR_TYPE=rsyslog
 
