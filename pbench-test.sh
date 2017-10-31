@@ -11,6 +11,17 @@ fi
 
 set -euxo pipefail
 
+if ! rpm -q pbench-agent ; then
+    if [ ! -f /etc/yum.repos.d/pbench.repo ] ; then
+        curl -s https://copr.fedorainfracloud.org/coprs/ndokos/pbench/repo/epel-7/ndokos-pbench-epel-7.repo > /etc/yum.repos.d/pbench.repo
+    fi
+    yum -y install pbench-agent
+fi
+
+if [ ! -d /var/lib/pbench-agent/tools-default ] ; then
+    mkdir -p /var/lib/pbench-agent/tools-default
+fi
+
 . /opt/pbench-agent/profile
 
 export USE_FLUENTD=${USE_FLUENTD:-true}
