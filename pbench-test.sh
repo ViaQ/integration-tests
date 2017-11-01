@@ -35,7 +35,8 @@ if [ "$USE_FLUENTD" = "true" ] ; then
     COLLECTOR_TYPE=fluentd
 fi
 
-nohup pbench-user-benchmark --conf=test-${NMESSAGES}-${COLLECTOR_TYPE} ./openshift-test.sh > log.log 2>&1 &
+testname=test-${COLLECTOR_TYPE}-${NMESSAGES}-${NPROJECTS}
+nohup pbench-user-benchmark --conf=$testname ./openshift-test.sh > $testname.log 2>&1 &
 
 # pbench-kill-tools
 # pbench-stop-tools
