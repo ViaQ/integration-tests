@@ -24,8 +24,14 @@ fi
 
 . /opt/pbench-agent/profile
 
+# this is only registering perf
+# /opt/pbench-agent/util-scripts/pbench-register-tool-set
+for tool in sar iostat mpstat pidstat proc-vmstat proc-interrupts perf ; do
+    /opt/pbench-agent/util-scripts/pbench-register-tool --name $tool
+done
+
 export USE_FLUENTD=${USE_FLUENTD:-true}
-export NMESSAGES=${NMESSAGES:-5000}
+export NMESSAGES=${NMESSAGES:-100000}
 export NPROJECTS=${NPROJECTS:-1}
 #export SKIP_MESSAGES_TEST=${SKIP_MESSAGES_TEST:-true}
 
