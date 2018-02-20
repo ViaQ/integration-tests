@@ -387,6 +387,9 @@ test_count_expected() {
 }
 
 max_wait_time=$( expr \( $NMESSAGES \* \( $NPROJECTS + 1 \) \) / 75 )
+if [ $max_wait_time -lt 30 ] ; then
+    max_wait_time=30
+fi
 
 echo waiting $max_wait_time for $NMESSAGES messages in .operations and $NPROJECTS projects in elasticsearch
 
@@ -394,6 +397,7 @@ qs='{"query":{"term":{"ident":"'"${prefix}"'"}}}'
 myhost=localhost myurl="/.operations.*/_count" myqs="$qs" wait_until_cmd test_count_expected $max_wait_time 1 || {
     echo error: $NMESSAGES messages not found in .operations
     curl_es localhost .operations _search ident $prefix | python -mjson.tool
+    curl_es_ext localhost /_cat/indices
     exit 1
 }
 
